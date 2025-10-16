@@ -17,3 +17,10 @@ dependencies = [
 
 [project.scripts]
 copilot = "copilot.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["copilot"]
+
+[tool.hatch.build.targets.sdist]
+include = ["copilot", "README.md", "LICENSE", "pyproject.toml"]
+

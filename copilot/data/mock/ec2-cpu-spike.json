@@ -1,0 +1,9 @@
+{
+  "id": "ec2-cpu-spike",
+  "title": "EC2 Instance CPU Spike > 95%",
+  "severity": "MEDIUM",
+  "resource": "i-0123456789abcdef0",
+  "description": "Sustained CPU > 95% observed for 10+ minutes.",
+  "suggested_fix": "Right-size the instance or investigate noisy process; consider autoscaling or CPU credits.",
+  "evidence_files": ["cloudwatch_metric_sample.json"]
+}

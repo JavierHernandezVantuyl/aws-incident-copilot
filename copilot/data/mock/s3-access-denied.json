@@ -1,0 +1,9 @@
+{
+  "id": "s3-access-denied",
+  "title": "S3 AccessDenied on GetObject",
+  "severity": "HIGH",
+  "resource": "arn:aws:s3:::my-demo-bucket",
+  "description": "Clients receive AccessDenied when fetching objects from the bucket.",
+  "suggested_fix": "Update bucket policy to allow s3:GetObject for the intended principals.",
+  "evidence_files": ["s3_bucket_policy.json", "sample_cloudtrail_event.json"]
+}

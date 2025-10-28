@@ -7,8 +7,11 @@ from rich.table import Table
 
 from copilot.sources import mock as mock_source
 
-app = typer.Typer(no_args_is_help=True, help="AWS Incident Co-Pilot CLI (mock-first demo)")
+app = typer.Typer(
+    no_args_is_help=True, help="AWS Incident Co-Pilot CLI (mock-first demo)"
+)
 console = Console()
+
 
 @app.callback(invoke_without_command=True)
 def main(
@@ -31,6 +34,7 @@ def main(
             incs = mock_source.load_all()
             _print_incidents(incs)
 
+
 def _print_incidents(incidents):
     table = Table(title="Detected Incidents (mock)", show_lines=True)
     table.add_column("Slug", style="cyan")
@@ -42,8 +46,13 @@ def _print_incidents(incidents):
         table.add_row(inc.id, inc.title, inc.severity, inc.resource, inc.suggested_fix)
     console.print(table)
 
+
 @app.command()
-def diagnose(incident: Optional[str] = typer.Option(None, "--incident", help="Specific incident slug")):
+def diagnose(
+    incident: Optional[str] = typer.Option(
+        None, "--incident", help="Specific incident slug"
+    )
+):
     """Diagnose incidents from mock JSON files."""
     if incident:
         inc = mock_source.load_incident(incident)
@@ -52,10 +61,16 @@ def diagnose(incident: Optional[str] = typer.Option(None, "--incident", help="Sp
         incs = mock_source.load_all()
         _print_incidents(incs)
 
+
 @app.command("diag")
-def diag(incident: Optional[str] = typer.Option(None, "--incident", help="Specific incident slug")):
+def diag(
+    incident: Optional[str] = typer.Option(
+        None, "--incident", help="Specific incident slug"
+    )
+):
     """Alias for `diagnose`."""
     return diagnose(incident=incident)
+
 
 if __name__ == "__main__":
     app()

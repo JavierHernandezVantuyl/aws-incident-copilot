@@ -2,6 +2,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 from typing import List
 
+
 class Incident(BaseModel):
     id: str
     title: str

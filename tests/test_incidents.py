@@ -1,6 +1,5 @@
 """Tests for incident models."""
 
-import pytest
 from copilot.incidents import Incident
 
 

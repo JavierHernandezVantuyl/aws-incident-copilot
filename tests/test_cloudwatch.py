@@ -1,7 +1,6 @@
 """Tests for CloudWatch data source."""
 
-import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 from moto import mock_aws
 import boto3
 from copilot.sources.cloudwatch import CloudWatchSource

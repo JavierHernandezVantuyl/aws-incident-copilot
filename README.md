@@ -1,20 +1,51 @@
-# AWS Incident Co-Pilot
+# AWS Incident Co-Pilot 🚀
 
-A real-time AWS incident detection and response CLI tool that monitors your AWS infrastructure, detects incidents, collects evidence, and sends alerts.
+Monitor your AWS infrastructure and respond to incidents automatically - **no DevOps experience required!**
+
+> 👋 **New here?** Check out our [📖 Quick Start Guide](QUICKSTART.md) for a beginner-friendly setup tutorial!
+
+## What Does This Do?
+
+AWS Incident Co-Pilot is like a health monitor for your AWS cloud resources. It automatically:
+
+- 🔍 **Scans** your AWS account for problems
+- 🚨 **Alerts** you when something goes wrong
+- 📝 **Collects evidence** to help you fix issues
+- 💡 **Suggests fixes** for common problems
+
+Perfect for developers, DevOps teams, and anyone managing AWS infrastructure!
 
 ## Features
 
-- **Real-time Monitoring**: Continuously monitor AWS resources for incidents
-- **Multiple Incident Types**:
-  - EC2 CPU spikes
+- ✅ **Easy Setup** - Interactive wizard gets you started in 5 minutes
+- 🎯 **Smart Detection** - Automatically finds common AWS issues:
+  - High CPU usage on EC2 instances
   - Lambda function errors and timeouts
-  - Bedrock token usage spikes
-  - S3 access denied errors
+  - Excessive Bedrock API token usage
+  - S3 permission errors
   - DynamoDB throttling (coming soon)
-- **Evidence Collection**: Automatically collect and package CloudWatch metrics and CloudTrail logs
-- **Alerting**: Send notifications via SNS or email for HIGH/CRITICAL incidents
-- **Configurable Thresholds**: Customize detection thresholds via environment variables
-- **Mock Mode**: Test with mock data before connecting to AWS
+- 📊 **Real-time Monitoring** - Run once or keep monitoring continuously
+- 🔔 **Alerts** - Email or SNS notifications for critical incidents
+- 📦 **Evidence Collection** - Automatically gathers CloudWatch & CloudTrail data
+- ⚙️ **Customizable** - Adjust thresholds and settings to fit your needs
+- 🧪 **Test Mode** - Try it with mock data before connecting to AWS
+
+## Quick Start
+
+**3 simple commands to get started:**
+
+```bash
+# 1. Install (requires Python 3.9+)
+pip install aws-incident-copilot
+
+# 2. Run the interactive setup wizard
+copilot setup
+
+# 3. Start monitoring!
+copilot monitor
+```
+
+That's it! See the [📖 Quick Start Guide](QUICKSTART.md) for detailed instructions.
 
 ## Installation
 

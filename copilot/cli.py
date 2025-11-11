@@ -5,6 +5,7 @@ import time
 from typing import Optional
 from rich.console import Console
 from rich.table import Table
+from rich.panel import Panel
 
 from copilot.sources import mock as mock_source
 from copilot.sources.cloudwatch import CloudWatchSource
@@ -15,32 +16,31 @@ from copilot.alerts import AlertManager
 from copilot.config import settings
 
 app = typer.Typer(
-    no_args_is_help=True,
-    help="AWS Incident Co-Pilot - Real-time AWS incident detection and response",
+    no_args_is_help=False,
+    help="🚀 AWS Incident Co-Pilot - Monitor and respond to AWS incidents with ease",
 )
 console = Console()
 
 
 @app.callback(invoke_without_command=True)
-def main(
-    ctx: typer.Context,
-    incident: Optional[str] = typer.Option(
-        None,
-        "--incident",
-        help="Specific incident slug (default command: diagnose)",
-    ),
-):
-    """
-    If no subcommand is provided, behave like `diagnose` so you can run
-    `copilot` or `copilot --incident <slug>` directly.
-    """
+def main(ctx: typer.Context):
+    """AWS Incident Co-Pilot - Your friendly AWS monitoring assistant."""
     if ctx.invoked_subcommand is None:
-        if incident:
-            inc = mock_source.load_incident(incident)
-            _print_incidents([inc], title="Detected Incidents (mock)")
-        else:
-            incs = mock_source.load_all()
-            _print_incidents(incs, title="Detected Incidents (mock)")
+        # Show welcome message
+        console.print()
+        console.print(
+            Panel.fit(
+                "[bold cyan]AWS Incident Co-Pilot 🚀[/bold cyan]\n\n"
+                "Monitor your AWS infrastructure and respond to incidents quickly!\n\n"
+                "[dim]Quick Start:[/dim]\n"
+                "  [cyan]copilot setup[/cyan]        - First time? Run this to get started\n"
+                "  [cyan]copilot monitor[/cyan]      - Scan your AWS account for incidents\n"
+                "  [cyan]copilot test[/cyan]         - Test your AWS connection\n\n"
+                "[dim]Need help?[/dim] Run [cyan]copilot --help[/cyan]",
+                border_style="cyan",
+            )
+        )
+        console.print()
 
 
 @app.command()
@@ -71,13 +71,13 @@ def diag(
 @app.command()
 def monitor(
     continuous: bool = typer.Option(
-        False, "--continuous", "-c", help="Run continuously with polling"
+        False, "--continuous", "-c", help="Keep monitoring (poll every 5 minutes)"
     ),
     collect_evidence: bool = typer.Option(
-        True, "--evidence/--no-evidence", help="Collect evidence for incidents"
+        True, "--evidence/--no-evidence", help="Save evidence files"
     ),
     enable_alerts: bool = typer.Option(
-        False, "--alerts", "-a", help="Send alerts for HIGH/CRITICAL incidents"
+        False, "--alerts", "-a", help="Send email/SNS alerts for HIGH/CRITICAL"
     ),
     region: Optional[str] = typer.Option(
         None, "--region", "-r", help="AWS region (default from config)"
@@ -86,14 +86,32 @@ def monitor(
         None, "--profile", "-p", help="AWS profile name"
     ),
 ):
-    """Monitor AWS resources for incidents in real-time."""
+    """📊 Monitor your AWS account for incidents.
+
+    This scans your AWS resources (EC2, Lambda, S3, Bedrock) for issues like:
+    • High CPU usage on EC2 instances
+    • Lambda function errors
+    • Excessive Bedrock token usage
+    • S3 access denied errors
+
+    Examples:
+      copilot monitor                 # Run once
+      copilot monitor --continuous    # Keep monitoring
+      copilot monitor --alerts        # Enable alerts
+    """
     region = region or settings.aws_region
 
-    console.print("[bold cyan]Starting AWS Incident Monitor[/bold cyan]")
-    console.print(f"Region: {region}")
-    console.print(f"Continuous: {continuous}")
-    console.print(f"Evidence Collection: {collect_evidence}")
-    console.print(f"Alerting: {enable_alerts}")
+    console.print()
+    console.print(
+        Panel.fit(
+            "[bold cyan]🔍 AWS Incident Monitor[/bold cyan]\n\n"
+            f"Region: [yellow]{region}[/yellow]\n"
+            f"Mode: {'[green]Continuous[/green]' if continuous else '[yellow]Single Scan[/yellow]'}\n"
+            f"Evidence: {'[green]Enabled[/green]' if collect_evidence else '[dim]Disabled[/dim]'}\n"
+            f"Alerts: {'[green]Enabled[/green]' if enable_alerts else '[dim]Disabled[/dim]'}",
+            border_style="cyan",
+        )
+    )
     console.print()
 
     # Initialize AWS clients
@@ -216,6 +234,123 @@ def _print_incidents(incidents, title="Detected Incidents"):
         )
 
     console.print(table)
+
+
+@app.command()
+def setup():
+    """🛠️  Run the interactive setup wizard (recommended for first-time users)."""
+    from copilot.setup import run_setup_wizard
+
+    run_setup_wizard()
+
+
+@app.command()
+def test(
+    region: Optional[str] = typer.Option(
+        None, "--region", "-r", help="AWS region to test"
+    ),
+    profile: Optional[str] = typer.Option(
+        None, "--profile", "-p", help="AWS profile to use"
+    ),
+):
+    """🔍 Test your AWS connection and verify credentials."""
+    region = region or settings.aws_region
+    profile = profile or settings.aws_profile
+
+    console.print()
+    console.print("[bold]Testing AWS Connection...[/bold]")
+    console.print()
+
+    try:
+        import boto3
+        from botocore.exceptions import ClientError, NoCredentialsError
+
+        # Create session
+        session_kwargs = {"region_name": region}
+        if profile:
+            session_kwargs["profile_name"] = profile
+
+        session = boto3.Session(**session_kwargs)
+
+        # Test STS (this verifies credentials)
+        console.print("[yellow]→[/yellow] Verifying AWS credentials...")
+        sts = session.client("sts")
+        identity = sts.get_caller_identity()
+
+        console.print("[green]✓[/green] AWS credentials are valid!")
+        console.print(f"  Account ID: {identity['Account']}")
+        console.print(f"  User ARN: {identity['Arn']}")
+        console.print()
+
+        # Test CloudWatch access
+        console.print("[yellow]→[/yellow] Testing CloudWatch access...")
+        cloudwatch = session.client("cloudwatch")
+        cloudwatch.list_metrics(MaxRecords=1)
+        console.print("[green]✓[/green] CloudWatch access confirmed")
+
+        # Test CloudTrail access
+        console.print("[yellow]→[/yellow] Testing CloudTrail access...")
+        cloudtrail = session.client("cloudtrail")
+        cloudtrail.lookup_events(MaxResults=1)
+        console.print("[green]✓[/green] CloudTrail access confirmed")
+
+        # Test EC2 access
+        console.print("[yellow]→[/yellow] Testing EC2 access...")
+        ec2 = session.client("ec2")
+        ec2.describe_instances(MaxResults=5)
+        console.print("[green]✓[/green] EC2 access confirmed")
+
+        console.print()
+        console.print(
+            Panel.fit(
+                "[bold green]✅ All tests passed![/bold green]\n\n"
+                "Your AWS connection is working perfectly.\n"
+                f"Region: [cyan]{region}[/cyan]\n"
+                + (f"Profile: [cyan]{profile}[/cyan]\n" if profile else "")
+                + "\nYou're ready to start monitoring!",
+                border_style="green",
+            )
+        )
+
+    except NoCredentialsError:
+        console.print()
+        console.print(
+            Panel.fit(
+                "[bold red]❌ No AWS Credentials Found[/bold red]\n\n"
+                "We couldn't find your AWS credentials.\n\n"
+                "[yellow]To fix this:[/yellow]\n"
+                "1. Run [cyan]copilot setup[/cyan] to configure credentials\n"
+                "2. Or manually run [cyan]aws configure[/cyan]",
+                border_style="red",
+            )
+        )
+        raise typer.Exit(1)
+
+    except ClientError as e:
+        console.print()
+        console.print(
+            Panel.fit(
+                f"[bold red]❌ AWS Error[/bold red]\n\n"
+                f"{str(e)}\n\n"
+                "[yellow]Possible causes:[/yellow]\n"
+                "• Incorrect credentials\n"
+                "• Insufficient IAM permissions\n"
+                "• Invalid region\n\n"
+                "[cyan]Try running:[/cyan] copilot setup",
+                border_style="red",
+            )
+        )
+        raise typer.Exit(1)
+
+    except Exception as e:
+        console.print()
+        console.print(
+            Panel.fit(
+                f"[bold red]❌ Unexpected Error[/bold red]\n\n{str(e)}",
+                border_style="red",
+            )
+        )
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":

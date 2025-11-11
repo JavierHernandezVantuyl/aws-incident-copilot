@@ -26,6 +26,36 @@ def run_setup_wizard():
     )
     console.print()
 
+    # Show important warnings
+    console.print(
+        Panel(
+            "[bold yellow]⚠️  Important Information[/bold yellow]\n\n"
+            "[bold]Security:[/bold]\n"
+            "• This tool is READ-ONLY - it won't modify your AWS resources\n"
+            "• Keep your AWS access keys private (never share or commit to Git)\n"
+            "• We'll save credentials to ~/.aws/credentials (standard AWS location)\n\n"
+            "[bold]Costs:[/bold]\n"
+            "• AWS API calls may incur small charges (~$1-2/month for hourly checks)\n"
+            "• CloudWatch & CloudTrail usage typically covered by free tier\n\n"
+            "[bold]Permissions:[/bold]\n"
+            "• You need read access to CloudWatch, CloudTrail, EC2, and Lambda\n"
+            "• IAM user with proper permissions required (not root account)",
+            border_style="yellow",
+            padding=(1, 2),
+        )
+    )
+    console.print()
+
+    if not Confirm.ask(
+        "[bold]Do you understand and want to continue?[/bold]", default=True
+    ):
+        console.print(
+            "\n[yellow]Setup cancelled. Run 'copilot setup' when ready![/yellow]"
+        )
+        raise typer.Exit()
+
+    console.print()
+
     # Step 1: Check for existing AWS credentials
     console.print("[bold]Step 1: AWS Credentials[/bold]")
     console.print("We need to connect to your AWS account to monitor for incidents.\n")

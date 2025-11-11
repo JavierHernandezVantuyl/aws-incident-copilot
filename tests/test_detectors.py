@@ -1,6 +1,5 @@
 """Tests for incident detectors."""
 
-import pytest
 from datetime import datetime
 from moto import mock_aws
 import boto3
@@ -13,7 +12,6 @@ from copilot.detectors import (
     S3AccessDeniedDetector,
     run_all_detectors,
 )
-from copilot.config import settings
 
 
 @mock_aws

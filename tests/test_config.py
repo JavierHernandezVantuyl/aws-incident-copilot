@@ -1,7 +1,5 @@
 """Tests for configuration management."""
 
-import pytest
-import os
 from copilot.config import Settings
 
 

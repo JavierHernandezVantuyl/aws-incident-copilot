@@ -1,0 +1,216 @@
+"""Alerting system for incident notifications."""
+
+from typing import List, Optional
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
+from copilot.incidents import Incident
+from copilot.config import settings
+
+
+class AlertManager:
+    """Manages incident alerting and notifications."""
+
+    def __init__(self, region: str = None, profile: Optional[str] = None):
+        """Initialize alert manager.
+
+        Args:
+            region: AWS region (defaults to settings.aws_region)
+            profile: AWS profile name (optional)
+        """
+        region = region or settings.aws_region
+        session_kwargs = {"region_name": region}
+        if profile:
+            session_kwargs["profile_name"] = profile
+
+        session = boto3.Session(**session_kwargs)
+        self.sns = session.client("sns")
+        self.ses = session.client("ses")
+        self.region = region
+
+    def send_sns_alert(self, incident: Incident, topic_arn: str = None) -> bool:
+        """Send incident alert via SNS.
+
+        Args:
+            incident: The incident to alert on
+            topic_arn: SNS topic ARN (defaults to settings.sns_topic_arn)
+
+        Returns:
+            True if alert sent successfully, False otherwise
+        """
+        if not settings.enable_alerting:
+            return False
+
+        topic_arn = topic_arn or settings.sns_topic_arn
+        if not topic_arn:
+            print("No SNS topic ARN configured")
+            return False
+
+        try:
+            subject = f"[{incident.severity}] AWS Incident: {incident.title}"
+            message = self._format_alert_message(incident)
+
+            self.sns.publish(
+                TopicArn=topic_arn,
+                Subject=subject,
+                Message=message,
+                MessageAttributes={
+                    "severity": {
+                        "DataType": "String",
+                        "StringValue": incident.severity,
+                    },
+                    "incident_id": {"DataType": "String", "StringValue": incident.id},
+                },
+            )
+            return True
+        except (ClientError, NoCredentialsError) as e:
+            print(f"Error sending SNS alert: {e}")
+            return False
+
+    def send_email_alert(self, incident: Incident, recipient: str = None) -> bool:
+        """Send incident alert via email (SES).
+
+        Args:
+            incident: The incident to alert on
+            recipient: Email address (defaults to settings.alert_email)
+
+        Returns:
+            True if email sent successfully, False otherwise
+        """
+        if not settings.enable_alerting:
+            return False
+
+        recipient = recipient or settings.alert_email
+        if not recipient:
+            print("No email recipient configured")
+            return False
+
+        try:
+            subject = f"[{incident.severity}] AWS Incident: {incident.title}"
+            message = self._format_alert_message(incident)
+
+            # Note: SES requires verified sender email
+            sender = settings.alert_email or "noreply@example.com"
+
+            self.ses.send_email(
+                Source=sender,
+                Destination={"ToAddresses": [recipient]},
+                Message={
+                    "Subject": {"Data": subject},
+                    "Body": {"Text": {"Data": message}},
+                },
+            )
+            return True
+        except (ClientError, NoCredentialsError) as e:
+            print(f"Error sending email alert: {e}")
+            return False
+
+    def alert_on_incidents(
+        self, incidents: List[Incident], use_sns: bool = True, use_email: bool = False
+    ):
+        """Send alerts for multiple incidents.
+
+        Args:
+            incidents: List of incidents to alert on
+            use_sns: Whether to send SNS alerts
+            use_email: Whether to send email alerts
+        """
+        if not settings.enable_alerting or not incidents:
+            return
+
+        for incident in incidents:
+            # Only alert on HIGH and CRITICAL severity incidents
+            if incident.severity in ["HIGH", "CRITICAL"]:
+                if use_sns:
+                    self.send_sns_alert(incident)
+                if use_email:
+                    self.send_email_alert(incident)
+
+    def _format_alert_message(self, incident: Incident) -> str:
+        """Format incident as an alert message.
+
+        Args:
+            incident: The incident to format
+
+        Returns:
+            Formatted alert message
+        """
+        return f"""
+AWS INCIDENT DETECTED
+{'=' * 60}
+
+Incident ID: {incident.id}
+Severity: {incident.severity}
+Title: {incident.title}
+Resource: {incident.resource}
+
+Description:
+{incident.description}
+
+Suggested Fix:
+{incident.suggested_fix}
+
+Evidence Files:
+{chr(10).join(f'- {f}' for f in incident.evidence_files)}
+
+{'=' * 60}
+This alert was generated by AWS Incident Co-Pilot.
+        """.strip()
+
+    def create_cloudwatch_alarm(
+        self,
+        alarm_name: str,
+        metric_name: str,
+        namespace: str,
+        threshold: float,
+        comparison_operator: str = "GreaterThanThreshold",
+        evaluation_periods: int = 2,
+        period: int = 300,
+        statistic: str = "Average",
+        dimensions: List[dict] = None,
+        actions_enabled: bool = True,
+    ) -> bool:
+        """Create a CloudWatch alarm that can trigger SNS notifications.
+
+        Args:
+            alarm_name: Name of the alarm
+            metric_name: CloudWatch metric name
+            namespace: CloudWatch namespace
+            threshold: Alarm threshold value
+            comparison_operator: Comparison operator (GreaterThanThreshold, etc.)
+            evaluation_periods: Number of periods to evaluate
+            period: Period in seconds
+            statistic: Statistic to use (Average, Sum, etc.)
+            dimensions: List of metric dimensions
+            actions_enabled: Whether to enable alarm actions
+
+        Returns:
+            True if alarm created successfully, False otherwise
+        """
+        if not settings.sns_topic_arn:
+            print("No SNS topic ARN configured for alarm actions")
+            return False
+
+        try:
+            cloudwatch = boto3.client("cloudwatch", region_name=self.region)
+
+            alarm_kwargs = {
+                "AlarmName": alarm_name,
+                "MetricName": metric_name,
+                "Namespace": namespace,
+                "Threshold": threshold,
+                "ComparisonOperator": comparison_operator,
+                "EvaluationPeriods": evaluation_periods,
+                "Period": period,
+                "Statistic": statistic,
+                "ActionsEnabled": actions_enabled,
+                "AlarmActions": [settings.sns_topic_arn] if actions_enabled else [],
+            }
+
+            if dimensions:
+                alarm_kwargs["Dimensions"] = dimensions
+
+            cloudwatch.put_metric_alarm(**alarm_kwargs)
+            return True
+        except (ClientError, NoCredentialsError) as e:
+            print(f"Error creating CloudWatch alarm: {e}")
+            return False

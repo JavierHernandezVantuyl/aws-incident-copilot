@@ -133,10 +133,10 @@ export default function Home() {
               </div>
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-blue-900 mb-2">
-                  Welcome! Let's get you set up
+                  Welcome! Let&apos;s get you set up
                 </h2>
                 <p className="text-blue-800 mb-4">
-                  To start monitoring your AWS infrastructure, you'll need to configure your AWS credentials.
+                  To start monitoring your AWS infrastructure, you&apos;ll need to configure your AWS credentials.
                 </p>
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
                   <h3 className="font-medium text-gray-900 mb-2">Quick Setup:</h3>

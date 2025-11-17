@@ -2,7 +2,25 @@
 
 Monitor your AWS infrastructure and respond to incidents automatically - **no DevOps experience required!**
 
-> 👋 **New here?** Check out our [📖 Quick Start Guide](QUICKSTART.md) for a beginner-friendly setup tutorial!
+> 👋 **New here?**
+> - Want a **web dashboard**? See [🌐 Vercel Deployment Guide](VERCEL_DEPLOYMENT.md) (5 minutes setup!)
+> - Prefer **command line**? Check out our [📖 Quick Start Guide](QUICKSTART.md)
+
+## 🌐 Web Dashboard (NEW!)
+
+Deploy a beautiful web dashboard to Vercel in minutes! No server setup required.
+
+**[📖 See the Vercel Deployment Guide](VERCEL_DEPLOYMENT.md)**
+
+Features:
+- 🎨 Beautiful, modern UI
+- 📊 Real-time monitoring dashboard
+- 📱 Mobile-friendly
+- 🚀 One-click deployment to Vercel
+- 💰 Free hosting (Vercel Hobby plan)
+- 🔄 Automatic updates from GitHub
+
+Perfect for teams who want a visual dashboard instead of command-line tools!
 
 ## What Does This Do?
 
@@ -339,10 +357,42 @@ GitHub Actions automatically runs on all PRs:
 - For email alerts, verify sender email is verified in SES
 - Check `COPILOT_ENABLE_ALERTING=true` is set
 
+## Deployment Options
+
+### Option 1: Web Dashboard (Recommended for Teams)
+
+Deploy to Vercel for a beautiful web interface:
+
+```bash
+# 1. Push to GitHub
+git push
+
+# 2. Deploy to Vercel (one-time setup)
+# See VERCEL_DEPLOYMENT.md for detailed instructions
+
+# 3. Access your dashboard at:
+# https://your-project-name.vercel.app
+```
+
+**[📖 Full Vercel Deployment Guide](VERCEL_DEPLOYMENT.md)**
+
+### Option 2: Command Line (Recommended for Automation)
+
+Use the CLI for scripts and automation:
+
+```bash
+# Install
+pip install -e .
+
+# Run
+copilot monitor --continuous
+```
+
 ## Roadmap
 
+- [x] Web UI dashboard ✅ **NEW!**
+- [x] Vercel deployment support ✅ **NEW!**
 - [ ] Additional incident types (RDS, DynamoDB, API Gateway)
-- [ ] Web UI dashboard
 - [ ] Slack/Teams integration
 - [ ] Custom detection rules
 - [ ] Machine learning for anomaly detection

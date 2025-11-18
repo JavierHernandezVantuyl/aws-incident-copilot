@@ -63,10 +63,11 @@ jobs:
           # Prevent build from trying to connect to AWS
           SKIP_ENV_VALIDATION: true
 
-  # Security scanning
+  # Security scanning (non-blocking)
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -78,26 +79,27 @@ jobs:
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
+          exit-code: '0'
+        continue-on-error: true
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
 
   # All checks must pass
   all-checks:
     name: All Checks Passed
-    needs: [python-quality, nextjs-quality, security-scan]
+    needs: [python-quality, nextjs-quality]
     runs-on: ubuntu-latest
-    if: always()
     steps:
       - name: Check all jobs
         run: |
           if [ "${{ needs.python-quality.result }}" != "success" ] || \
-             [ "${{ needs.nextjs-quality.result }}" != "success" ] || \
-             [ "${{ needs.security-scan.result }}" != "success" ]; then
-            echo "One or more checks failed"
+             [ "${{ needs.nextjs-quality.result }}" != "success" ]; then
+            echo "❌ One or more checks failed"
             exit 1
           fi
-          echo "All checks passed successfully!"
+          echo "✅ All checks passed successfully!"

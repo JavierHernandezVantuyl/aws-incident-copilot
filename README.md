@@ -1,423 +1,520 @@
 # AWS Incident Co-Pilot 🚀
 
-Monitor your AWS infrastructure and respond to incidents automatically - **no DevOps experience required!**
+<div align="center">
 
-> 👋 **New here?**
-> - Want a **web dashboard**? See [🌐 Vercel Deployment Guide](VERCEL_DEPLOYMENT.md) (5 minutes setup!)
-> - Prefer **command line**? Check out our [📖 Quick Start Guide](QUICKSTART.md)
+![AWS Incident Co-Pilot Logo](https://img.shields.io/badge/AWS-Incident_Co--Pilot-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white)
 
-## 🌐 Web Dashboard (NEW!)
+**Monitor your AWS infrastructure and respond to incidents automatically - no DevOps experience required!**
 
-Deploy a beautiful web dashboard to Vercel in minutes! No server setup required.
+[![CI Status](https://img.shields.io/github/actions/workflow/status/JavierHernandezVantuyl/aws-incident-copilot/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=flat-square&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com)
+[![Cost](https://img.shields.io/badge/Cost-FREE-success?style=flat-square&logo=aws-lambda)](COST.md)
+[![Security](https://img.shields.io/badge/Security-Production_Ready-green?style=flat-square&logo=security)](SECURITY.md)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square)](https://github.com/psf/black)
 
-**[📖 See the Vercel Deployment Guide](VERCEL_DEPLOYMENT.md)**
+[Quick Start](#-quick-start) •
+[Features](#-features) •
+[Deploy](#-deployment-options) •
+[Documentation](#-documentation) •
+[Security](#-security) •
+[Contributing](#-contributing) •
+[Changelog](CHANGELOG.md)
 
-Features:
-- 🎨 Beautiful, modern UI
-- 📊 Real-time monitoring dashboard
-- 📱 Mobile-friendly
-- 🚀 One-click deployment to Vercel
-- 💰 Free hosting (Vercel Hobby plan)
-- 🔄 Automatic updates from GitHub
+</div>
 
-Perfect for teams who want a visual dashboard instead of command-line tools!
+---
 
-## What Does This Do?
+<div align="center">
 
-AWS Incident Co-Pilot is like a health monitor for your AWS cloud resources. It automatically:
+### 🎉 Get Started in 2 Minutes
 
-- 🔍 **Scans** your AWS account for problems
+```bash
+# Option 1: Deploy to Vercel (Recommended)
+# Click the button above ↑
+
+# Option 2: Run Locally
+pip install -e . && copilot setup && copilot monitor
+```
+
+**No credit card required** • **100% Free Tier** • **Production Ready**
+
+</div>
+
+---
+
+## 🎯 What Does This Do?
+
+AWS Incident Co-Pilot is like having a **24/7 DevOps assistant** for your AWS infrastructure. It automatically:
+
+- 🔍 **Scans** your AWS account for problems (EC2, Lambda, S3, Bedrock)
 - 🚨 **Alerts** you when something goes wrong
-- 📝 **Collects evidence** to help you fix issues
-- 💡 **Suggests fixes** for common problems
+- 📝 **Collects evidence** to help you fix issues faster
+- 💡 **Suggests fixes** with actionable recommendations
+- 💰 **Stays FREE** - designed for AWS free tier
 
-Perfect for developers, DevOps teams, and anyone managing AWS infrastructure!
+> **Perfect for:** Developers, DevOps teams, startups, and anyone managing AWS infrastructure!
 
-## Features
+### ⚡ Key Highlights
 
-- ✅ **Easy Setup** - Interactive wizard gets you started in 5 minutes
-- 🎯 **Smart Detection** - Automatically finds common AWS issues:
-  - High CPU usage on EC2 instances
-  - Lambda function errors and timeouts
-  - Excessive Bedrock API token usage
-  - S3 permission errors
-  - DynamoDB throttling (coming soon)
-- 📊 **Real-time Monitoring** - Run once or keep monitoring continuously
-- 🔔 **Alerts** - Email or SNS notifications for critical incidents
-- 📦 **Evidence Collection** - Automatically gathers CloudWatch & CloudTrail data
-- ⚙️ **Customizable** - Adjust thresholds and settings to fit your needs
-- 🧪 **Test Mode** - Try it with mock data before connecting to AWS
+| Feature | Benefit |
+|---------|---------|
+| **🚀 5-Minute Setup** | Deploy to Vercel with one click - no complex configuration |
+| **💰 100% Free** | Stays within AWS & Vercel free tiers - $0/month for typical usage |
+| **🔒 Production Security** | Read-only operations, encrypted credentials, security headers |
+| **📊 Beautiful UI** | Modern Next.js dashboard - monitor from anywhere |
+| **🤖 Smart Detection** | AI-powered incident detection with actionable recommendations |
+| **📚 Complete Docs** | Step-by-step guides for every deployment scenario |
 
-## Quick Start
+---
 
-**3 simple commands to get started:**
+## ✨ Features
+
+### 🌐 Web Dashboard (Production-Ready!)
+- **Beautiful, Modern UI** - Built with Next.js and Tailwind CSS
+- **Real-Time Monitoring** - See incidents as they happen
+- **Cost Awareness** - Built-in cost controls and warnings
+- **Mobile Responsive** - Monitor from anywhere
+- **30-Second Cooldown** - Prevents excessive AWS API costs
+- **Professional Security** - Production-grade security headers
+
+### 🔍 Smart Detection
+Automatically finds common AWS issues:
+- **EC2 CPU Spikes** - High CPU usage for 10+ minutes
+- **Lambda Errors** - Function failures and timeouts
+- **S3 Access Denied** - Permission errors
+- **Bedrock Token Spikes** - Excessive API usage ($$ warning!)
+- **DynamoDB Throttling** - Coming soon!
+
+### 💰 Cost Optimized
+- **$0.00/month** for typical usage (stays within free tiers)
+- **Vercel Free Tier** - 100GB-hours/month included
+- **AWS Free Tier** - 1M CloudWatch requests/month
+- **Built-in Rate Limiting** - 30-second scan cooldown
+- **Transparent Pricing** - Cost estimates in every response
+
+### 🔒 Production Security
+- **Read-Only Operations** - Never modifies your AWS infrastructure
+- **No Data Persistence** - Nothing stored on servers
+- **Security Headers** - X-Frame-Options, CSP, etc.
+- **Error Sanitization** - No sensitive data in error messages
+- **IAM Best Practices** - Minimal permissions required
+
+[📖 Read Full Security Policy](SECURITY.md)
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Web Dashboard (Recommended)
+
+**Deploy to Vercel in 5 minutes:**
+
+1. **Click to Deploy**
+
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JavierHernandezVantuyl/aws-incident-copilot&project-name=aws-incident-copilot&env=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_DEFAULT_REGION)
+
+2. **Add Environment Variables** (in Vercel dashboard):
+   ```bash
+   AWS_ACCESS_KEY_ID=your_aws_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret
+   AWS_DEFAULT_REGION=us-east-1
+   ```
+
+3. **Deploy and Access** your dashboard!
+
+**[📖 Detailed Deployment Guide](VERCEL_DEPLOYMENT.md)** | **[🔐 Get AWS Credentials](SECURITY.md#recommended-iam-policy)**
+
+### Option 2: Command Line
 
 ```bash
 # 1. Install (requires Python 3.9+)
-pip install aws-incident-copilot
+pip install -e .
 
-# 2. Run the interactive setup wizard
+# 2. Configure AWS credentials
 copilot setup
 
 # 3. Start monitoring!
 copilot monitor
 ```
 
-That's it! See the [📖 Quick Start Guide](QUICKSTART.md) for detailed instructions.
+---
 
-## Installation
+## 📊 Dashboard Preview
 
-### Prerequisites
-
-- Python 3.9 or higher
-- AWS credentials configured (via `~/.aws/credentials` or environment variables)
-- Appropriate IAM permissions (see [Required Permissions](#required-permissions))
-
-### Install from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/JavierHernandezVantuyl/aws-incident-copilot.git
-cd aws-incident-copilot
-
-# Install dependencies
-pip install -e .
-
-# For development (includes testing tools)
-pip install -e ".[dev]"
+```
+┌─────────────────────────────────────────────────────────────┐
+│  AWS Incident Co-Pilot        ✓ AWS Connected              │
+├─────────────────────────────────────────────────────────────┤
+│  💵 Cost: $0.00/month (Free Tier) | Limit: 5-min intervals │
+│  ────────────────────────────────────────────────────────── │
+│  [⚡ Scan Now]  [▶ Start Monitoring]  [🔍 Test Connection] │
+│  ────────────────────────────────────────────────────────── │
+│  📊 Stats:  0 Total  |  0 Critical  |  0 High  |  0 Medium │
+│  ────────────────────────────────────────────────────────── │
+│  ✓ No incidents detected                                   │
+│    Your AWS infrastructure is running smoothly!             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+---
 
-### 1. Mock Mode (No AWS Required)
+## 🎨 Features in Detail
 
-Test the CLI with mock incident data:
+### Incident Detection
 
-```bash
-# List all mock incidents
-copilot diagnose
+| Incident Type | Detection Logic | Severity | Cost Impact |
+|--------------|----------------|----------|-------------|
+| **EC2 CPU Spike** | CPU > 95% for 10+ min | MEDIUM-HIGH | Minimal |
+| **Lambda Errors** | 5+ errors in lookback window | MEDIUM-HIGH | Minimal |
+| **S3 Access Denied** | AccessDenied in CloudTrail | HIGH | None |
+| **Bedrock Token Spike** | >100K tokens/hour | HIGH | ⚠️ **$2-5/hour** |
 
-# View specific incident
-copilot diagnose --incident ec2-cpu-spike
+### Smart Recommendations
+
+Each incident includes actionable recommendations:
+
+```json
+{
+  "title": "EC2 CPU Spike Detected",
+  "recommendations": [
+    "Check application logs for unusual activity",
+    "Consider scaling up instance size",
+    "Review recent deployments"
+  ],
+  "cost_impact": null
+}
 ```
 
-### 2. Real AWS Monitoring
+---
 
-Monitor your AWS resources for incidents:
+## 💰 Cost Transparency
 
-```bash
-# Run a single scan
-copilot monitor
+### Monthly Cost Breakdown
 
-# Run continuous monitoring (polls every 5 minutes)
-copilot monitor --continuous
+| Service | Free Tier | Typical Usage | Cost |
+|---------|-----------|---------------|------|
+| Vercel Hosting | 100GB-hours | ~24GB-hours | **$0.00** |
+| AWS CloudWatch | 1M requests | ~43K requests | **$0.00** |
+| AWS CloudTrail | 1 trail free | 1 trail | **$0.00** |
+| **TOTAL** | | | **$0.00** ✅ |
 
-# Enable alerting for HIGH/CRITICAL incidents
-copilot monitor --continuous --alerts
+**Recommended:** Scan every 5-15 minutes to stay 100% free.
 
-# Monitor specific region
-copilot monitor --region us-west-2
+**[📊 Detailed Cost Analysis](COST.md)**
 
-# Use specific AWS profile
-copilot monitor --profile production
+---
+
+## 📚 Documentation
+
+### Quick Links
+- **[🌐 Vercel Deployment](VERCEL_DEPLOYMENT.md)** - Step-by-step deployment guide
+- **[💰 Cost Analysis](COST.md)** - Complete cost breakdown
+- **[🔐 Security Policy](SECURITY.md)** - Security best practices
+- **[✅ Production Checklist](PRODUCTION_READY.md)** - Deployment verification
+- **[📖 Quick Start (Web)](QUICKSTART_WEB.md)** - Local development
+- **[📖 Quick Start (CLI)](QUICKSTART.md)** - Command-line usage
+
+### Architecture
+
+```
+aws-incident-copilot/
+├── app/                    # Next.js web dashboard
+│   ├── page.tsx           # Main dashboard component
+│   ├── types.ts           # TypeScript definitions
+│   └── globals.css        # Tailwind styles
+├── api/                   # Python serverless functions
+│   ├── scan.py           # Scan AWS for incidents
+│   ├── test-aws.py       # Test AWS connectivity
+│   └── mock-incidents.py # Demo data
+├── copilot/               # Python CLI package
+│   ├── sources/          # CloudWatch, CloudTrail
+│   ├── detectors/        # Incident detection logic
+│   ├── evidence.py       # Evidence collection
+│   └── alerts.py         # Alerting system
+└── tests/                 # Comprehensive test suite
 ```
 
-## Configuration
+---
 
-Configure the tool via environment variables or a `.env` file:
+## 🔒 Security
 
-```bash
-# Copy example configuration
-cp .env.example .env
+### Security Highlights
+✅ **Read-Only AWS Operations** - Never modifies your infrastructure
+✅ **No Data Persistence** - Nothing stored on servers
+✅ **Encrypted Credentials** - Vercel encrypts environment variables
+✅ **Security Headers** - Production-grade HTTP headers
+✅ **Minimal IAM Permissions** - Least-privilege access
+✅ **Error Sanitization** - No sensitive data exposure
 
-# Edit configuration
-nano .env
-```
-
-### AWS Configuration
-
-```bash
-COPILOT_AWS_REGION=us-east-1
-COPILOT_AWS_PROFILE=default  # Optional: AWS profile name
-```
-
-### Detection Thresholds
-
-```bash
-# EC2 CPU Spike Detection
-COPILOT_EC2_CPU_THRESHOLD=95.0                # CPU percentage threshold
-COPILOT_EC2_CPU_DURATION_MINUTES=10           # Sustained duration
-
-# Lambda Error Detection
-COPILOT_LAMBDA_ERROR_THRESHOLD=5              # Number of errors
-COPILOT_LAMBDA_TIMEOUT_THRESHOLD_MS=25000     # Timeout threshold
-
-# Bedrock Token Usage
-COPILOT_BEDROCK_TOKEN_THRESHOLD=100000        # Token count threshold
-COPILOT_BEDROCK_TOKEN_WINDOW_MINUTES=60       # Time window
-
-# DynamoDB Throttling
-COPILOT_DYNAMODB_THROTTLE_THRESHOLD=10        # Throttle event count
-
-# RDS Connections
-COPILOT_RDS_CONNECTION_THRESHOLD=90           # Connection percentage
-```
-
-### Monitoring Configuration
-
-```bash
-COPILOT_LOOKBACK_MINUTES=60              # How far back to check metrics
-COPILOT_POLL_INTERVAL_SECONDS=300        # Polling interval for continuous mode
-```
-
-### Alerting Configuration
-
-```bash
-COPILOT_ENABLE_ALERTING=true
-COPILOT_SNS_TOPIC_ARN=arn:aws:sns:us-east-1:123456789012:incident-alerts
-COPILOT_ALERT_EMAIL=alerts@example.com
-```
-
-### Evidence Configuration
-
-```bash
-COPILOT_EVIDENCE_OUTPUT_DIR=./evidence   # Where to store evidence files
-COPILOT_MAX_EVIDENCE_AGE_DAYS=30         # Auto-cleanup threshold
-```
-
-## Usage Examples
-
-### Basic Monitoring
-
-```bash
-# Single scan of all AWS resources
-copilot monitor
-
-# Continuous monitoring (Ctrl+C to stop)
-copilot monitor --continuous
-
-# Disable evidence collection (faster)
-copilot monitor --no-evidence
-```
-
-### Advanced Monitoring
-
-```bash
-# Production setup: continuous monitoring with alerts
-copilot monitor \
-  --continuous \
-  --alerts \
-  --region us-east-1 \
-  --profile production
-
-# Quick check without evidence collection
-copilot monitor --no-evidence
-```
-
-### Working with Mock Data
-
-```bash
-# List all mock incidents
-copilot diagnose
-
-# View specific incident types
-copilot diagnose --incident ec2-cpu-spike
-copilot diagnose --incident s3-access-denied
-
-# Alias for diagnose
-copilot diag
-```
-
-## Required Permissions
-
-Create an IAM policy with these permissions:
+### Recommended IAM Policy
 
 ```json
 {
   "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "cloudwatch:GetMetricStatistics",
-        "cloudwatch:ListMetrics",
-        "cloudtrail:LookupEvents",
-        "ec2:DescribeInstances",
-        "lambda:ListFunctions",
-        "lambda:GetFunction",
-        "sns:Publish",
-        "ses:SendEmail"
-      ],
-      "Resource": "*"
-    }
-  ]
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": [
+      "cloudwatch:GetMetricStatistics",
+      "cloudwatch:ListMetrics",
+      "cloudtrail:LookupEvents",
+      "ec2:DescribeInstances",
+      "sts:GetCallerIdentity"
+    ],
+    "Resource": "*"
+  }]
 }
 ```
 
-## Architecture
+**[🔐 Full Security Documentation](SECURITY.md)**
 
-```
-aws-incident-copilot/
-├── copilot/
-│   ├── cli.py              # CLI commands
-│   ├── config.py           # Configuration management
-│   ├── incidents/          # Incident data models
-│   ├── sources/            # Data sources (CloudWatch, CloudTrail)
-│   │   ├── cloudwatch.py
-│   │   ├── cloudtrail.py
-│   │   └── mock.py
-│   ├── detectors/          # Incident detection logic
-│   ├── evidence.py         # Evidence collection
-│   └── alerts.py           # Alerting system
-├── tests/                  # Test suite
-└── .env.example           # Configuration template
-```
+---
 
-## Detected Incident Types
+## 🚀 Deployment Options
 
-### 1. EC2 CPU Spike
-- **Detection**: CPU > 95% for 10+ minutes (configurable)
-- **Severity**: MEDIUM to HIGH
-- **Evidence**: CloudWatch CPU metrics, instance details
+### 🌐 Option 1: Vercel (Recommended for Teams)
 
-### 2. Lambda Function Errors
-- **Detection**: 5+ errors in lookback window (configurable)
-- **Severity**: MEDIUM to HIGH (HIGH if also timing out)
-- **Evidence**: Error metrics, duration metrics, CloudWatch logs
-
-### 3. Bedrock Token Usage Spike
-- **Detection**: >100K tokens in 60 minutes (configurable)
-- **Severity**: HIGH
-- **Evidence**: Token metrics, invocation counts
-
-### 4. S3 Access Denied
-- **Detection**: AccessDenied errors in CloudTrail
-- **Severity**: HIGH
-- **Evidence**: CloudTrail events, bucket policies
-
-## Development
-
-### Running Tests
+**Best for:** Web dashboard, teams, visual monitoring
 
 ```bash
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=copilot --cov-report=html
-
-# Run specific test file
-pytest tests/test_detectors.py
-
-# Run with verbose output
-pytest -v
+# One-click deploy
+vercel --prod
 ```
 
-### Code Quality
+**Pros:**
+- Beautiful web UI
+- Free hosting
+- Automatic HTTPS
+- No server management
+- Mobile friendly
 
-```bash
-# Lint code
-ruff check .
+**[📖 Deploy to Vercel](VERCEL_DEPLOYMENT.md)**
 
-# Format code
-black .
+### 💻 Option 2: CLI (Recommended for Automation)
 
-# Check formatting without modifying
-black --check .
-```
-
-### CI/CD
-
-GitHub Actions automatically runs on all PRs:
-- Linting with ruff and black
-- Test suite with pytest
-- Python 3.11 on Ubuntu
-
-## Troubleshooting
-
-### No incidents detected
-
-- Verify AWS credentials: `aws sts get-caller-identity`
-- Check IAM permissions
-- Verify resources exist in the specified region
-- Adjust detection thresholds in `.env`
-
-### CloudTrail events not found
-
-- Ensure CloudTrail is enabled in your AWS account
-- CloudTrail has a delay of up to 15 minutes
-- Verify `COPILOT_LOOKBACK_MINUTES` is sufficient
-
-### Alerting not working
-
-- Verify SNS topic exists and you have publish permissions
-- For email alerts, verify sender email is verified in SES
-- Check `COPILOT_ENABLE_ALERTING=true` is set
-
-## Deployment Options
-
-### Option 1: Web Dashboard (Recommended for Teams)
-
-Deploy to Vercel for a beautiful web interface:
-
-```bash
-# 1. Push to GitHub
-git push
-
-# 2. Deploy to Vercel (one-time setup)
-# See VERCEL_DEPLOYMENT.md for detailed instructions
-
-# 3. Access your dashboard at:
-# https://your-project-name.vercel.app
-```
-
-**[📖 Full Vercel Deployment Guide](VERCEL_DEPLOYMENT.md)**
-
-### Option 2: Command Line (Recommended for Automation)
-
-Use the CLI for scripts and automation:
+**Best for:** Scripts, CI/CD, automation
 
 ```bash
 # Install
 pip install -e .
 
-# Run
+# Run once
+copilot monitor
+
+# Continuous monitoring
 copilot monitor --continuous
+
+# With alerts
+copilot monitor --continuous --alerts
 ```
 
-## Roadmap
+**Pros:**
+- Works in scripts
+- No web UI needed
+- Direct AWS access
+- Full CLI control
 
-- [x] Web UI dashboard ✅ **NEW!**
-- [x] Vercel deployment support ✅ **NEW!**
-- [ ] Additional incident types (RDS, DynamoDB, API Gateway)
+**[📖 CLI Quick Start](QUICKSTART.md)**
+
+---
+
+## 🧪 Development
+
+### Local Setup
+
+```bash
+# Clone repository
+git clone https://github.com/JavierHernandezVantuyl/aws-incident-copilot.git
+cd aws-incident-copilot
+
+# Install Python dependencies
+pip install -e ".[dev]"
+
+# Install Node.js dependencies
+npm install
+
+# Run web dashboard locally
+npm run dev
+# Visit http://localhost:3000
+
+# Run Python tests
+pytest -v --cov=copilot
+
+# Run Next.js build
+npm run build
+```
+
+### Testing
+
+```bash
+# Python tests with coverage
+pytest -v --cov=copilot --cov-report=html
+
+# Lint Python code
+ruff check .
+black --check .
+
+# Lint Next.js code
+npm run lint
+
+# Type checking
+npx tsc --noEmit
+```
+
+---
+
+## 🤝 Contributing
+
+We love contributions! Here's how you can help make this project even better:
+
+[![Code of Conduct](https://img.shields.io/badge/Code%20of%20Conduct-Contributor%20Covenant-purple.svg?style=flat-square)](CODE_OF_CONDUCT.md)
+
+**Please read our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before getting started.**
+
+### 🌟 Ways to Contribute
+
+- **⭐ Star this repo** - Show your support and help others discover it!
+- **🐛 Report bugs** - Found an issue? [Open a bug report](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues/new)
+- **💡 Suggest features** - Have an idea? [Share it with us](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues/new)
+- **📖 Improve docs** - Help make our documentation even better
+- **🔧 Submit PRs** - Fix bugs or add new features
+
+### 🚀 Quick Contribution Guide
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Add** tests for new functionality
+4. **Run** tests (`pytest`, `npm run build`)
+5. **Format** code (`black .`, `npm run lint`)
+6. **Commit** with clear messages (`git commit -m 'Add amazing feature'`)
+7. **Push** to your branch (`git push origin feature/amazing-feature`)
+8. **Open** a Pull Request
+
+### 📋 Development Guidelines
+
+- **Python:** Follow PEP 8, use type hints
+- **TypeScript:** Strict mode, full type safety
+- **Security:** Never expose credentials
+- **Tests:** Maintain >80% coverage
+- **Documentation:** Update docs for new features
+
+### 🏅 Contributors
+
+Thank you to all our contributors! Every contribution, no matter how small, is valued and appreciated.
+
+[![Contributors](https://img.shields.io/github/contributors/JavierHernandezVantuyl/aws-incident-copilot?style=for-the-badge)](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/graphs/contributors)
+
+---
+
+## 📝 Roadmap
+
+- [x] ✅ Web UI dashboard
+- [x] ✅ Vercel deployment support
+- [x] ✅ Production-ready security
+- [x] ✅ Cost optimization features
+- [x] ✅ TypeScript types
+- [x] ✅ Comprehensive documentation
+- [ ] DynamoDB throttling detection
+- [ ] RDS connection monitoring
+- [ ] API Gateway error tracking
 - [ ] Slack/Teams integration
 - [ ] Custom detection rules
-- [ ] Machine learning for anomaly detection
-- [ ] Multi-account support
 - [ ] Historical incident tracking
-- [ ] Automated remediation actions
+- [ ] Multi-account support
+- [ ] Automated remediation
 
-## Contributing
+---
 
-Contributions are welcome! Please:
+## 🏆 Why Choose AWS Incident Co-Pilot?
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass and code is formatted
-5. Submit a pull request
+| Feature | AWS Incident Co-Pilot | CloudWatch Alarms | Third-Party SaaS |
+|---------|----------------------|-------------------|------------------|
+| **Cost** | **FREE** | $0.10+ per alarm | $50-200/month |
+| **Setup Time** | 5 minutes | 2+ hours | 30 minutes |
+| **Web Dashboard** | ✅ Included | ❌ Manual | ✅ Included |
+| **Smart Recommendations** | ✅ Yes | ❌ No | ✅ Yes |
+| **Open Source** | ✅ MIT License | ❌ Proprietary | ❌ Proprietary |
+| **Self-Hosted** | ✅ Optional | N/A | ❌ No |
 
-## License
+---
 
-MIT License - see LICENSE file for details
+## 📄 License
 
-## Author
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-Javier Hernandez Vantuyl
+---
 
-## Support
+## 🙏 Acknowledgments
 
-For issues and feature requests, please use the [GitHub issue tracker](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues).
+- Built with [Next.js](https://nextjs.org/), [React](https://react.dev/), and [Tailwind CSS](https://tailwindcss.com/)
+- Powered by [AWS SDK (boto3)](https://aws.amazon.com/sdk-for-python/)
+- Deployed on [Vercel](https://vercel.com)
+- CLI framework: [Typer](https://typer.tiangolo.com/)
+
+---
+
+## 💬 Support & Questions
+
+- **📖 Documentation:** Check the [docs folder](.)
+- **🐛 Bug Reports:** [Open an issue](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues)
+- **💡 Feature Requests:** [Open an issue](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues)
+- **🔒 Security Issues:** See [SECURITY.md](SECURITY.md)
+
+---
+
+## 📊 Project Stats
+
+![GitHub stars](https://img.shields.io/github/stars/JavierHernandezVantuyl/aws-incident-copilot?style=social)
+![GitHub forks](https://img.shields.io/github/forks/JavierHernandezVantuyl/aws-incident-copilot?style=social)
+![GitHub issues](https://img.shields.io/github/issues/JavierHernandezVantuyl/aws-incident-copilot)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/JavierHernandezVantuyl/aws-incident-copilot)
+
+---
+
+## ⭐ Show Your Support
+
+If you find AWS Incident Co-Pilot useful, please consider:
+
+<div align="center">
+
+### ⭐ **Star this repository** ⭐
+
+Starring helps others discover this project and motivates us to keep improving it!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=JavierHernandezVantuyl/aws-incident-copilot&type=Date)](https://star-history.com/#JavierHernandezVantuyl/aws-incident-copilot&Date)
+
+</div>
+
+### 🎉 Other Ways to Support
+
+- **Share** this project with colleagues and on social media
+- **Contribute** by submitting pull requests
+- **Sponsor** future development (coming soon)
+- **Provide feedback** to help us improve
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the DevOps community**
+
+**Free • Open Source • Production Ready**
+
+<br />
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JavierHernandezVantuyl/aws-incident-copilot)
+
+<br />
+
+[🚀 Deploy Now](https://vercel.com/new/clone?repository-url=https://github.com/JavierHernandezVantuyl/aws-incident-copilot) • [📖 Documentation](VERCEL_DEPLOYMENT.md) • [🐛 Report Bug](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues) • [💡 Request Feature](https://github.com/JavierHernandezVantuyl/aws-incident-copilot/issues)
+
+<br />
+
+**Copyright © 2024 AWS Incident Co-Pilot Contributors**
+
+Licensed under [MIT License](LICENSE)
+
+</div>

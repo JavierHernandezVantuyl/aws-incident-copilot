@@ -10,7 +10,7 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, Any
 import traceback
 
 # Add the parent directory to the path so we can import copilot modules
@@ -275,7 +275,7 @@ class handler(BaseHTTPRequestHandler):
         except Exception as e:
             # Catch-all for unexpected errors
             # Log full traceback for debugging (visible in Vercel logs)
-            print(f"Unexpected error in scan endpoint:")
+            print("Unexpected error in scan endpoint:")
             traceback.print_exc()
 
             # Send sanitized error to client

@@ -62,6 +62,8 @@ export default function Home() {
   const [costInfo, setCostInfo] = useState<string | null>(null)
   const [permissionWarning, setPermissionWarning] = useState<string | null>(null)
   const [credentials, setCredentials] = useState<{awsAccessKeyId: string; awsSecretAccessKey: string; awsRegion: string} | null>(null)
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [connectionSuccess, setConnectionSuccess] = useState<string | null>(null)
 
   // Load credentials from localStorage on mount
   useEffect(() => {
@@ -94,8 +96,19 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monitoring, scanCooldown])
 
-  const checkAwsConfig = async () => {
-    if (!credentials) return
+  const checkAwsConfig = async (showFeedback = false) => {
+    if (!credentials) {
+      if (showFeedback) {
+        setError('Please configure AWS credentials in Settings first')
+      }
+      return
+    }
+
+    if (showFeedback) {
+      setTestingConnection(true)
+      setError(null)
+      setConnectionSuccess(null)
+    }
 
     try {
       const response = await fetch('/api/test-aws', {
@@ -120,6 +133,20 @@ export default function Home() {
       setAwsConfigured(data.configured)
       setAwsConnected(data.connected || false)
 
+      // Show success message if this was a manual test
+      if (showFeedback) {
+        if (data.connected) {
+          setConnectionSuccess(`✓ Successfully connected to AWS! Region: ${credentials.awsRegion}`)
+          // Auto-dismiss success message after 5 seconds
+          setTimeout(() => setConnectionSuccess(null), 5000)
+        } else {
+          setError('AWS credentials are configured but connection could not be verified. Please check your credentials.')
+        }
+      }
+
+      // Clear any permission warnings first
+      setPermissionWarning(null)
+
       // Show permission warnings if any
       if (data.permissions && !data.all_permissions_ok) {
         const failedServices = Object.entries(data.permissions)
@@ -130,6 +157,11 @@ export default function Home() {
           setPermissionWarning(
             `Limited permissions detected for: ${failedServices.join(', ')}. Some incident types may not be detected.`
           )
+        } else {
+          // All permissions OK
+          if (showFeedback) {
+            setConnectionSuccess((prev) => prev + ' All permissions verified!')
+          }
         }
       }
 
@@ -141,7 +173,17 @@ export default function Home() {
       console.error('Failed to check AWS config:', error)
       setAwsConfigured(false)
       setAwsConnected(false)
-      setError('Failed to connect to API. Please refresh the page.')
+
+      if (showFeedback) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        setError(`Connection test failed: ${errorMessage}. Please verify your AWS credentials and network connection.`)
+      } else {
+        setError('Failed to connect to API. Please refresh the page.')
+      }
+    } finally {
+      if (showFeedback) {
+        setTestingConnection(false)
+      }
     }
   }
 
@@ -258,20 +300,29 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-4">
               {awsConnected ? (
-                <span className="flex items-center text-sm text-green-600">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  AWS Connected
-                </span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 border border-green-300 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-green-900">AWS Connected</span>
+                    <span className="text-xs text-green-700">{credentials?.awsRegion}</span>
+                  </div>
+                </div>
               ) : awsConfigured ? (
-                <span className="flex items-center text-sm text-yellow-600">
-                  <AlertTriangle className="w-4 h-4 mr-1" />
-                  Configured (not verified)
-                </span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-100 border border-yellow-300 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-yellow-900">Not Verified</span>
+                    <span className="text-xs text-yellow-700">Click Test Connection</span>
+                  </div>
+                </div>
               ) : (
-                <span className="flex items-center text-sm text-red-600">
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Not Configured
-                </span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-100 border border-red-300 rounded-lg">
+                  <XCircle className="w-4 h-4 text-red-600" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-red-900">Not Configured</span>
+                    <span className="text-xs text-red-700">Add credentials</span>
+                  </div>
+                </div>
               )}
 
               <Link
@@ -310,6 +361,17 @@ export default function Home() {
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-yellow-900 mb-1">Permission Warning</h3>
               <p className="text-sm text-yellow-800">{permissionWarning}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Success Display */}
+        {connectionSuccess && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-start space-x-3">
+            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-green-900 mb-1">Connection Verified</h3>
+              <p className="text-sm text-green-800">{connectionSuccess}</p>
             </div>
           </div>
         )}
@@ -428,13 +490,22 @@ export default function Home() {
             </button>
 
             <button
-              onClick={checkAwsConfig}
-              disabled={loading}
-              className="flex items-center px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
+              onClick={() => checkAwsConfig(true)}
+              disabled={loading || testingConnection}
+              className="flex items-center px-6 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm"
               aria-label="Test AWS connection"
             >
-              <Shield className="w-5 h-5 mr-2" />
-              Test Connection
+              {testingConnection ? (
+                <>
+                  <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                  Testing...
+                </>
+              ) : (
+                <>
+                  <Shield className="w-5 h-5 mr-2" />
+                  Test Connection
+                </>
+              )}
             </button>
           </div>
 

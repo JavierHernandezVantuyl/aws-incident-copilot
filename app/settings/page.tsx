@@ -1,13 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Settings, Key, Globe, CheckCircle, AlertCircle, LogOut, ArrowLeft } from 'lucide-react'
+import { Settings, Key, Globe, CheckCircle, AlertCircle, ArrowLeft, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SettingsPage() {
-  const { data: session, status, update } = useSession()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -19,19 +17,24 @@ export default function SettingsPage() {
     awsRegion: 'us-east-1',
   })
 
-  // Redirect to login if not authenticated
+  // Load credentials from localStorage on mount
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    } else if (session?.user) {
-      // Load current AWS credentials
-      setFormData({
-        awsAccessKeyId: (session.user as any).awsAccessKeyId || '',
-        awsSecretAccessKey: (session.user as any).awsSecretAccessKey || '',
-        awsRegion: (session.user as any).awsRegion || 'us-east-1',
-      })
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('awsCredentials')
+        if (stored) {
+          const credentials = JSON.parse(stored)
+          setFormData({
+            awsAccessKeyId: credentials.awsAccessKeyId || '',
+            awsSecretAccessKey: credentials.awsSecretAccessKey || '',
+            awsRegion: credentials.awsRegion || 'us-east-1',
+          })
+        }
+      } catch (err) {
+        console.error('Failed to load credentials:', err)
+      }
     }
-  }, [session, status, router])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,47 +43,37 @@ export default function SettingsPage() {
     setSuccess(false)
 
     try {
-      // Update session with new credentials by signing in again
-      const result = await fetch('/api/update-credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      })
-
-      if (!result.ok) {
-        throw new Error('Failed to update credentials')
+      // Validate credentials are not empty
+      if (!formData.awsAccessKeyId || !formData.awsSecretAccessKey) {
+        throw new Error('Please provide both AWS Access Key ID and Secret Access Key')
       }
 
-      // Force session refresh
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          awsAccessKeyId: formData.awsAccessKeyId,
-          awsSecretAccessKey: formData.awsSecretAccessKey,
-          awsRegion: formData.awsRegion,
-        },
-      })
+      // Save to localStorage
+      localStorage.setItem('awsCredentials', JSON.stringify(formData))
 
       setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      setTimeout(() => {
+        // Redirect to home page after successful save
+        router.push('/')
+      }, 1500)
     } catch (err) {
-      setError('Failed to update AWS credentials')
+      setError(err instanceof Error ? err.message : 'Failed to update AWS credentials')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSignOut = async () => {
-    await signOut({ callbackUrl: '/login' })
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    )
+  const handleClearCredentials = () => {
+    if (confirm('Are you sure you want to clear your AWS credentials? This cannot be undone.')) {
+      localStorage.removeItem('awsCredentials')
+      setFormData({
+        awsAccessKeyId: '',
+        awsSecretAccessKey: '',
+        awsRegion: 'us-east-1',
+      })
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    }
   }
 
   return (
@@ -98,11 +91,11 @@ export default function SettingsPage() {
             </Link>
           </div>
           <button
-            onClick={handleSignOut}
+            onClick={handleClearCredentials}
             className="flex items-center gap-2 text-gray-600 hover:text-red-600 transition-colors"
           >
-            <LogOut className="h-5 w-5" />
-            <span>Sign Out</span>
+            <Trash2 className="h-5 w-5" />
+            <span>Clear Credentials</span>
           </button>
         </div>
       </header>
@@ -115,10 +108,11 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           </div>
 
-          {/* User Info */}
+          {/* Info Banner */}
           <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-gray-700">
-              <span className="font-medium">Logged in as:</span> {session?.user?.name}
+              Configure your AWS credentials to start monitoring your infrastructure.
+              Your credentials are stored securely in your browser&apos;s local storage and never leave your device.
             </p>
           </div>
 
@@ -157,6 +151,7 @@ export default function SettingsPage() {
                     onChange={(e) => setFormData({ ...formData, awsAccessKeyId: e.target.value })}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="AKIA..."
+                    required
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Your AWS access key ID for API authentication
@@ -174,9 +169,10 @@ export default function SettingsPage() {
                     onChange={(e) => setFormData({ ...formData, awsSecretAccessKey: e.target.value })}
                     className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter secret key"
+                    required
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Your AWS secret access key (stored securely in your session)
+                    Your AWS secret access key (stored locally in your browser)
                   </p>
                 </div>
 
@@ -214,9 +210,15 @@ export default function SettingsPage() {
             {/* Security Note */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-900">
-                <strong>Security Note:</strong> Your AWS credentials are stored in an encrypted JWT session cookie
-                and are never saved to any database. They are only accessible during your current session.
+                <strong>Security Best Practices:</strong>
               </p>
+              <ul className="mt-2 text-sm text-yellow-800 space-y-1 list-disc list-inside">
+                <li>Use an IAM user with read-only permissions only</li>
+                <li>Recommended policies: CloudWatchReadOnlyAccess, AWSCloudTrailReadOnlyAccess, AmazonEC2ReadOnlyAccess</li>
+                <li>Your credentials are stored locally in your browser&apos;s localStorage</li>
+                <li>Credentials are never sent to our servers - they go directly from your browser to AWS</li>
+                <li>Clear your credentials when using a shared computer</li>
+              </ul>
             </div>
 
             {/* Save Button */}

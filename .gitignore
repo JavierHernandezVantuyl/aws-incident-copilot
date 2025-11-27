@@ -14,8 +14,11 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+lib/  # Python library directory
 lib64/
+# Exception: Track Next.js lib directory files
+!lib/*.ts
+!lib/*.js
 parts/
 sdist/
 var/

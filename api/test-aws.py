@@ -57,184 +57,241 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
 
-    def do_GET(self):
-        """Test AWS credentials and connectivity."""
-        try:
-            # Check if basic AWS credentials are present
-            has_access_key = bool(os.getenv("AWS_ACCESS_KEY_ID"))
-            has_secret_key = bool(os.getenv("AWS_SECRET_ACCESS_KEY"))
+    def _get_credentials(self, request_data=None):
+        """Get AWS credentials from request data or environment variables."""
+        if request_data and request_data.get("awsAccessKeyId"):
+            # Use credentials from request (user-specific)
+            access_key = request_data.get("awsAccessKeyId", "")
+            secret_key = request_data.get("awsSecretAccessKey", "")
+            region = request_data.get("awsRegion", "us-east-1")
+        else:
+            # Fallback to environment variables (legacy/fallback)
+            access_key = os.getenv("AWS_ACCESS_KEY_ID", "")
+            secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "")
             region = os.getenv(
                 "AWS_DEFAULT_REGION", os.getenv("COPILOT_AWS_REGION", "us-east-1")
             )
 
-            configured = has_access_key and has_secret_key
+        has_access_key = bool(access_key)
+        has_secret_key = bool(secret_key)
 
-            response_data = {
-                "configured": configured,
-                "has_access_key": has_access_key,
-                "has_secret_key": has_secret_key,
-                "region": region,
-                "cost_info": {
-                    "test_cost": "~$0.0001 per test (free tier)",
-                    "free_tier": "STS GetCallerIdentity is always free",
-                },
+        return {
+            "access_key": access_key,
+            "secret_key": secret_key,
+            "region": region,
+            "has_access_key": has_access_key,
+            "has_secret_key": has_secret_key
+        }
+
+    def _test_aws_credentials(self, credentials):
+        """Test AWS credentials and return response data."""
+        has_access_key = credentials["has_access_key"]
+        has_secret_key = credentials["has_secret_key"]
+        region = credentials["region"]
+        access_key = credentials["access_key"]
+        secret_key = credentials["secret_key"]
+
+        configured = has_access_key and has_secret_key
+
+        response_data = {
+            "configured": configured,
+            "has_access_key": has_access_key,
+            "has_secret_key": has_secret_key,
+            "region": region,
+            "cost_info": {
+                "test_cost": "~$0.0001 per test (free tier)",
+                "free_tier": "STS GetCallerIdentity is always free",
+            },
+        }
+
+        # If not configured, return early with helpful message
+        if not configured:
+            response_data["help"] = {
+                "message": "AWS credentials not configured",
+                "required_credentials": [
+                    "AWS Access Key ID",
+                    "AWS Secret Access Key",
+                    "AWS Region (optional, defaults to us-east-1)",
+                ],
+                "setup_guide": "Configure your credentials in Settings",
             }
+            return response_data
 
-            # If not configured, return early with helpful message
-            if not configured:
-                response_data["help"] = {
-                    "message": "AWS credentials not configured",
-                    "required_env_vars": [
-                        "AWS_ACCESS_KEY_ID",
-                        "AWS_SECRET_ACCESS_KEY",
-                        "AWS_DEFAULT_REGION (optional, defaults to us-east-1)",
-                    ],
-                    "setup_guide": "Add these variables in your Vercel project settings under Environment Variables",
-                }
-                self._send_json_response(200, response_data)
-                return
+        # Check for placeholder values
+        if "your_" in access_key.lower() or "example" in access_key.lower():
+            response_data["configured"] = False
+            response_data["error"] = (
+                "AWS credentials appear to be placeholder values"
+            )
+            response_data["help"] = (
+                "Replace example values with real AWS credentials"
+            )
+            return response_data
 
-            # Check for placeholder values
-            access_key = os.getenv("AWS_ACCESS_KEY_ID", "")
-            if "your_" in access_key.lower() or "example" in access_key.lower():
-                response_data["configured"] = False
-                response_data["error"] = (
-                    "AWS credentials appear to be placeholder values"
-                )
-                response_data["help"] = (
-                    "Replace example values with real AWS credentials"
-                )
-                self._send_json_response(200, response_data)
-                return
+        # Try to actually connect to AWS
+        try:
+            import boto3
+            from botocore.exceptions import (
+                ClientError,
+                NoCredentialsError,
+                BotoCoreError,
+            )
 
-            # Try to actually connect to AWS
+            # Create session with user-provided credentials
+            session = boto3.Session(
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                region_name=region
+            )
+
+            # Test STS (this verifies credentials work)
+            sts = session.client("sts")
+            identity = sts.get_caller_identity()
+
+            response_data["connected"] = True
+            response_data["account_id"] = identity["Account"]
+            response_data["user_arn"] = sanitize_arn(identity["Arn"])
+            response_data["user_id"] = identity["UserId"]
+
+            # Test required service permissions (non-blocking)
+            permissions_status = {}
+
+            # Test CloudWatch
             try:
-                import boto3
-                from botocore.exceptions import (
-                    ClientError,
-                    NoCredentialsError,
-                    BotoCoreError,
-                )
-
-                session = boto3.Session(region_name=region)
-
-                # Test STS (this verifies credentials work)
-                sts = session.client("sts")
-                identity = sts.get_caller_identity()
-
-                response_data["connected"] = True
-                response_data["account_id"] = identity["Account"]
-                response_data["user_arn"] = sanitize_arn(identity["Arn"])
-                response_data["user_id"] = identity["UserId"]
-
-                # Test required service permissions (non-blocking)
-                permissions_status = {}
-
-                # Test CloudWatch
-                try:
-                    cw = session.client("cloudwatch")
-                    cw.list_metrics(MaxRecords=1)
-                    permissions_status["cloudwatch"] = "OK"
-                except ClientError as e:
-                    if "AccessDenied" in str(e):
-                        permissions_status["cloudwatch"] = (
-                            "Access Denied - Add CloudWatchReadOnlyAccess"
-                        )
-                    else:
-                        permissions_status["cloudwatch"] = f"Error: {str(e)[:100]}"
-                except Exception as e:
-                    permissions_status["cloudwatch"] = f"Error: {str(e)[:100]}"
-
-                # Test CloudTrail
-                try:
-                    ct = session.client("cloudtrail")
-                    ct.lookup_events(MaxResults=1)
-                    permissions_status["cloudtrail"] = "OK"
-                except ClientError as e:
-                    if "AccessDenied" in str(e):
-                        permissions_status["cloudtrail"] = (
-                            "Access Denied - Add AWSCloudTrailReadOnlyAccess"
-                        )
-                    else:
-                        permissions_status["cloudtrail"] = f"Error: {str(e)[:100]}"
-                except Exception as e:
-                    permissions_status["cloudtrail"] = f"Error: {str(e)[:100]}"
-
-                # Test EC2
-                try:
-                    ec2 = session.client("ec2")
-                    ec2.describe_instances(MaxResults=5)
-                    permissions_status["ec2"] = "OK"
-                except ClientError as e:
-                    if "AccessDenied" in str(e) or "UnauthorizedOperation" in str(e):
-                        permissions_status["ec2"] = (
-                            "Access Denied - Add AmazonEC2ReadOnlyAccess"
-                        )
-                    else:
-                        permissions_status["ec2"] = f"Error: {str(e)[:100]}"
-                except Exception as e:
-                    permissions_status["ec2"] = f"Error: {str(e)[:100]}"
-
-                response_data["permissions"] = permissions_status
-
-                # Determine overall status
-                all_ok = all(status == "OK" for status in permissions_status.values())
-                response_data["all_permissions_ok"] = all_ok
-
-                if not all_ok:
-                    response_data["warning"] = (
-                        "Some required permissions are missing. Incident detection may be limited."
-                    )
-                    response_data["recommendation"] = (
-                        "Ensure your IAM user/role has CloudWatch, CloudTrail, and EC2 read-only access"
-                    )
-
-            except NoCredentialsError:
-                response_data["connected"] = False
-                response_data["error"] = "AWS credentials not found or invalid"
-                response_data["help"] = (
-                    "Verify AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are set correctly"
-                )
-
+                cw = session.client("cloudwatch")
+                cw.list_metrics(MaxRecords=1)
+                permissions_status["cloudwatch"] = "OK"
             except ClientError as e:
-                error_code = e.response.get("Error", {}).get("Code", "Unknown")
-                error_message = e.response.get("Error", {}).get("Message", str(e))
-
-                response_data["connected"] = False
-                response_data["error_code"] = error_code
-
-                # Provide helpful error messages
-                if error_code == "InvalidClientTokenId":
-                    response_data["error"] = "Invalid AWS Access Key ID"
-                    response_data["help"] = "Check that AWS_ACCESS_KEY_ID is correct"
-                elif error_code == "SignatureDoesNotMatch":
-                    response_data["error"] = "Invalid AWS Secret Access Key"
-                    response_data["help"] = (
-                        "Check that AWS_SECRET_ACCESS_KEY is correct"
-                    )
-                elif "AccessDenied" in error_code:
-                    response_data["error"] = "Access denied"
-                    response_data["help"] = (
-                        "Verify IAM permissions include STS GetCallerIdentity"
+                if "AccessDenied" in str(e):
+                    permissions_status["cloudwatch"] = (
+                        "Access Denied - Add CloudWatchReadOnlyAccess"
                     )
                 else:
-                    response_data["error"] = f"AWS error: {error_message[:200]}"
+                    permissions_status["cloudwatch"] = f"Error: {str(e)[:100]}"
+            except Exception as e:
+                permissions_status["cloudwatch"] = f"Error: {str(e)[:100]}"
 
-            except ImportError:
-                response_data["connected"] = False
-                response_data["error"] = "boto3 not installed"
-                response_data["help"] = (
-                    "This error should not occur in Vercel. Check deployment logs."
+            # Test CloudTrail
+            try:
+                ct = session.client("cloudtrail")
+                ct.lookup_events(MaxResults=1)
+                permissions_status["cloudtrail"] = "OK"
+            except ClientError as e:
+                if "AccessDenied" in str(e):
+                    permissions_status["cloudtrail"] = (
+                        "Access Denied - Add AWSCloudTrailReadOnlyAccess"
+                    )
+                else:
+                    permissions_status["cloudtrail"] = f"Error: {str(e)[:100]}"
+            except Exception as e:
+                permissions_status["cloudtrail"] = f"Error: {str(e)[:100]}"
+
+            # Test EC2
+            try:
+                ec2 = session.client("ec2")
+                ec2.describe_instances(MaxResults=5)
+                permissions_status["ec2"] = "OK"
+            except ClientError as e:
+                if "AccessDenied" in str(e) or "UnauthorizedOperation" in str(e):
+                    permissions_status["ec2"] = (
+                        "Access Denied - Add AmazonEC2ReadOnlyAccess"
+                    )
+                else:
+                    permissions_status["ec2"] = f"Error: {str(e)[:100]}"
+            except Exception as e:
+                permissions_status["ec2"] = f"Error: {str(e)[:100]}"
+
+            response_data["permissions"] = permissions_status
+
+            # Determine overall status
+            all_ok = all(status == "OK" for status in permissions_status.values())
+            response_data["all_permissions_ok"] = all_ok
+
+            if not all_ok:
+                response_data["warning"] = (
+                    "Some required permissions are missing. Incident detection may be limited."
+                )
+                response_data["recommendation"] = (
+                    "Ensure your IAM user/role has CloudWatch, CloudTrail, and EC2 read-only access"
                 )
 
-            except BotoCoreError as e:
-                response_data["connected"] = False
-                response_data["error"] = f"AWS connection error: {str(e)[:200]}"
+        except NoCredentialsError:
+            response_data["connected"] = False
+            response_data["error"] = "AWS credentials not found or invalid"
+            response_data["help"] = (
+                "Verify your AWS credentials are correct"
+            )
 
-            except Exception as e:
-                response_data["connected"] = False
-                response_data["error"] = f"Unexpected error: {str(e)[:200]}"
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "Unknown")
+            error_message = e.response.get("Error", {}).get("Message", str(e))
 
+            response_data["connected"] = False
+            response_data["error_code"] = error_code
+
+            # Provide helpful error messages
+            if error_code == "InvalidClientTokenId":
+                response_data["error"] = "Invalid AWS Access Key ID"
+                response_data["help"] = "Check that your AWS Access Key ID is correct"
+            elif error_code == "SignatureDoesNotMatch":
+                response_data["error"] = "Invalid AWS Secret Access Key"
+                response_data["help"] = (
+                    "Check that your AWS Secret Access Key is correct"
+                )
+            elif "AccessDenied" in error_code:
+                response_data["error"] = "Access denied"
+                response_data["help"] = (
+                    "Verify IAM permissions include STS GetCallerIdentity"
+                )
+            else:
+                response_data["error"] = f"AWS error: {error_message[:200]}"
+
+        except ImportError:
+            response_data["connected"] = False
+            response_data["error"] = "boto3 not installed"
+            response_data["help"] = (
+                "This error should not occur in Vercel. Check deployment logs."
+            )
+
+        except BotoCoreError as e:
+            response_data["connected"] = False
+            response_data["error"] = f"AWS connection error: {str(e)[:200]}"
+
+        except Exception as e:
+            response_data["connected"] = False
+            response_data["error"] = f"Unexpected error: {str(e)[:200]}"
+
+        return response_data
+
+    def do_GET(self):
+        """Test AWS credentials and connectivity (legacy support)."""
+        try:
+            credentials = self._get_credentials()
+            response_data = self._test_aws_credentials(credentials)
+            self._send_json_response(200, response_data)
+        except Exception as e:
+            # Catch-all error handler
+            self._send_json_response(
+                500,
+                {
+                    "configured": False,
+                    "error": "Internal server error occurred during AWS test",
+                    "details": str(e)[:200],
+                    "support": "Check Vercel function logs for details",
+                },
+            )
+
+    def do_POST(self):
+        """Test AWS credentials from request body (user-specific)."""
+        try:
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            request_body = self.rfile.read(content_length).decode('utf-8')
+            request_data = json.loads(request_body) if request_body else {}
+
+            # Get credentials from request or environment
+            credentials = self._get_credentials(request_data)
+            response_data = self._test_aws_credentials(credentials)
             self._send_json_response(200, response_data)
 
         except Exception as e:
@@ -253,7 +310,7 @@ class handler(BaseHTTPRequestHandler):
         """Handle CORS preflight requests."""
         self.send_response(200)
         self._set_security_headers()
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Max-Age", "86400")
         self.end_headers()

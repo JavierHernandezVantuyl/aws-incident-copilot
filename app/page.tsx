@@ -11,6 +11,9 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   Activity,
   AlertTriangle,
@@ -23,7 +26,9 @@ import {
   Shield,
   Zap,
   DollarSign,
-  Info
+  Info,
+  Settings,
+  User
 } from 'lucide-react'
 import type { Incident, ScanResponse, AWSTestResponse } from './types'
 
@@ -31,6 +36,9 @@ const SCAN_COOLDOWN_MS = 30000 // 30 seconds minimum between scans
 const CONTINUOUS_SCAN_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
 export default function Home() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
   // State management
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [loading, setLoading] = useState(false)
@@ -43,10 +51,19 @@ export default function Home() {
   const [costInfo, setCostInfo] = useState<string | null>(null)
   const [permissionWarning, setPermissionWarning] = useState<string | null>(null)
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    }
+  }, [status, router])
+
   // Check AWS configuration on mount
   useEffect(() => {
-    checkAwsConfig()
-  }, [])
+    if (status === 'authenticated') {
+      checkAwsConfig()
+    }
+  }, [status])
 
   // Continuous monitoring effect
   useEffect(() => {
@@ -63,11 +80,20 @@ export default function Home() {
   }, [monitoring, scanCooldown])
 
   const checkAwsConfig = async () => {
+    if (!session?.user) return
+
     try {
       const response = await fetch('/api/test-aws', {
+        method: 'POST',
         headers: {
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          awsAccessKeyId: (session.user as any).awsAccessKeyId,
+          awsSecretAccessKey: (session.user as any).awsSecretAccessKey,
+          awsRegion: (session.user as any).awsRegion
+        })
       })
 
       if (!response.ok) {
@@ -111,14 +137,26 @@ export default function Home() {
       return
     }
 
+    if (!session?.user) {
+      setError('Please sign in to scan for incidents')
+      return
+    }
+
     setLoading(true)
     setError(null)
 
     try {
       const response = await fetch('/api/scan', {
+        method: 'POST',
         headers: {
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          awsAccessKeyId: (session.user as any).awsAccessKeyId,
+          awsSecretAccessKey: (session.user as any).awsSecretAccessKey,
+          awsRegion: (session.user as any).awsRegion
+        })
       })
 
       if (!response.ok) {
@@ -159,7 +197,7 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }, [scanCooldown])
+  }, [scanCooldown, session])
 
   const toggleMonitoring = () => {
     if (!monitoring) {
@@ -182,6 +220,23 @@ export default function Home() {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300'
     }
+  }
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if not authenticated (will redirect)
+  if (status === 'unauthenticated') {
+    return null
   }
 
   return (
@@ -219,6 +274,22 @@ export default function Home() {
                   <XCircle className="w-4 h-4 mr-1" />
                   Not Configured
                 </span>
+              )}
+
+              {session?.user && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600 flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    {session.user.name}
+                  </span>
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -281,18 +352,18 @@ export default function Home() {
                 <div className="bg-white rounded-lg p-4 border border-blue-200">
                   <h3 className="font-medium text-gray-900 mb-2">Quick Setup:</h3>
                   <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700">
-                    <li>Go to your Vercel project settings</li>
-                    <li>Add environment variables:
+                    <li>Click the <strong>Settings</strong> button in the header above</li>
+                    <li>Enter your AWS credentials:
                       <ul className="ml-6 mt-1 space-y-1 text-xs">
-                        <li><code className="bg-gray-100 px-2 py-0.5 rounded">AWS_ACCESS_KEY_ID</code></li>
-                        <li><code className="bg-gray-100 px-2 py-0.5 rounded">AWS_SECRET_ACCESS_KEY</code></li>
-                        <li><code className="bg-gray-100 px-2 py-0.5 rounded">AWS_DEFAULT_REGION</code></li>
+                        <li>AWS Access Key ID</li>
+                        <li>AWS Secret Access Key</li>
+                        <li>AWS Region</li>
                       </ul>
                     </li>
-                    <li>Redeploy your application</li>
+                    <li>Click Save and return to the dashboard</li>
                   </ol>
                   <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                    <strong>Security:</strong> Use IAM user with read-only permissions (CloudWatchReadOnlyAccess, AWSCloudTrailReadOnlyAccess, AmazonEC2ReadOnlyAccess).
+                    <strong>Security:</strong> Use IAM user with read-only permissions (CloudWatchReadOnlyAccess, AWSCloudTrailReadOnlyAccess, AmazonEC2ReadOnlyAccess). Your credentials are stored securely in your browser session only.
                   </div>
                 </div>
               </div>

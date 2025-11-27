@@ -34,20 +34,26 @@ except ImportError as e:
     print(f"Warning: Dependencies not available: {e}")
 
 
-def validate_aws_credentials() -> tuple[bool, str]:
+def validate_aws_credentials(access_key=None, secret_key=None) -> tuple[bool, str]:
     """
     Validate AWS credentials are present (not their correctness).
+
+    Args:
+        access_key: AWS access key (if None, reads from env)
+        secret_key: AWS secret key (if None, reads from env)
 
     Returns:
         (is_valid, error_message)
     """
-    access_key = os.getenv("AWS_ACCESS_KEY_ID")
-    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    if access_key is None:
+        access_key = os.getenv("AWS_ACCESS_KEY_ID", "")
+    if secret_key is None:
+        secret_key = os.getenv("AWS_SECRET_ACCESS_KEY", "")
 
     if not access_key or not secret_key:
         return (
             False,
-            "AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.",
+            "AWS credentials not configured. Please configure your credentials in Settings.",
         )
 
     # Basic validation - check they're not placeholder values
@@ -155,121 +161,157 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data, indent=2).encode("utf-8"))
 
-    def do_GET(self):
-        """Handle GET requests to scan for incidents."""
-        try:
-            # Validate dependencies are available
-            if not DEPENDENCIES_AVAILABLE:
-                self._send_json_response(
-                    200,
-                    {
-                        "success": True,
-                        "demo_mode": True,
-                        "incidents": [
-                            {
-                                "id": "demo-incident-1",
-                                "title": "Demo: High CPU Usage",
-                                "severity": "MEDIUM",
-                                "resource": "i-demo123456",
-                                "description": "This is a demo incident. Install dependencies to see real incidents.",
-                                "detected_at": datetime.utcnow().isoformat(),
-                            }
-                        ],
-                        "warning": "Running in demo mode. Python dependencies not available.",
-                        **get_cost_warning(),
-                    },
-                )
-                return
+    def _get_credentials(self, request_data=None):
+        """Get AWS credentials from request data or environment variables."""
+        if request_data and request_data.get("awsAccessKeyId"):
+            # Use credentials from request (user-specific)
+            return {
+                "access_key": request_data.get("awsAccessKeyId", ""),
+                "secret_key": request_data.get("awsSecretAccessKey", ""),
+                "region": request_data.get("awsRegion", "us-east-1")
+            }
+        else:
+            # Fallback to environment variables (legacy/fallback)
+            return {
+                "access_key": os.getenv("AWS_ACCESS_KEY_ID", ""),
+                "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY", ""),
+                "region": os.getenv("AWS_DEFAULT_REGION", os.getenv("COPILOT_AWS_REGION", "us-east-1"))
+            }
 
-            # Validate AWS credentials
-            creds_valid, error_msg = validate_aws_credentials()
-            if not creds_valid:
-                self._send_json_response(
-                    200,
-                    {
-                        "success": False,
-                        "error": error_msg,
-                        "incidents": [],
-                        "help": "Add AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to your Vercel environment variables.",
-                    },
-                )
-                return
-
-            # Get region from environment or use default
-            region = os.getenv(
-                "AWS_DEFAULT_REGION", os.getenv("COPILOT_AWS_REGION", "us-east-1")
-            )
-
-            # Initialize AWS clients with timeout protection
-            try:
-                cloudwatch = CloudWatchSource(region=region)
-                cloudtrail = CloudTrailSource(region=region)
-            except Exception as e:
-                error_message = sanitize_error_message(e)
-                self._send_json_response(
-                    500,
-                    {
-                        "success": False,
-                        "error": error_message,
-                        "incidents": [],
-                        "troubleshooting": {
-                            "check_credentials": "Verify AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are correct",
-                            "check_permissions": "Ensure IAM user has CloudWatch and CloudTrail read permissions",
-                            "check_region": f'Verify region "{region}" is valid and accessible',
-                        },
-                    },
-                )
-                return
-
-            # Run all detectors
-            try:
-                incidents = run_all_detectors(cloudwatch, cloudtrail)
-            except Exception as e:
-                error_message = sanitize_error_message(e)
-                self._send_json_response(
-                    500,
-                    {
-                        "success": False,
-                        "error": f"Failed to scan AWS resources: {error_message}",
-                        "incidents": [],
-                        "region": region,
-                    },
-                )
-                return
-
-            # Convert incidents to JSON-serializable format
-            incidents_data = []
-            for incident in incidents:
-                try:
-                    incidents_data.append(
-                        {
-                            "id": incident.id,
-                            "title": incident.title,
-                            "severity": incident.severity,
-                            "resource": incident.resource,
-                            "description": incident.description,
-                            "detected_at": (
-                                incident.detected_at.isoformat()
-                                if hasattr(incident.detected_at, "isoformat")
-                                else str(incident.detected_at)
-                            ),
-                        }
-                    )
-                except Exception as e:
-                    # Log but don't fail the entire request for one bad incident
-                    print(f"Warning: Failed to serialize incident: {e}")
-                    continue
-
-            # Send successful response
-            response = {
+    def _perform_scan(self, credentials):
+        """Perform AWS scan with given credentials."""
+        # Validate dependencies are available
+        if not DEPENDENCIES_AVAILABLE:
+            return {
                 "success": True,
-                "incidents": incidents_data,
-                "incident_count": len(incidents_data),
-                "region": region,
-                "scanned_at": datetime.utcnow().isoformat(),
+                "demo_mode": True,
+                "incidents": [
+                    {
+                        "id": "demo-incident-1",
+                        "title": "Demo: High CPU Usage",
+                        "severity": "MEDIUM",
+                        "resource": "i-demo123456",
+                        "description": "This is a demo incident. Install dependencies to see real incidents.",
+                        "detected_at": datetime.utcnow().isoformat(),
+                    }
+                ],
+                "warning": "Running in demo mode. Python dependencies not available.",
                 **get_cost_warning(),
             }
 
+        access_key = credentials["access_key"]
+        secret_key = credentials["secret_key"]
+        region = credentials["region"]
+
+        # Validate AWS credentials
+        creds_valid, error_msg = validate_aws_credentials(access_key, secret_key)
+        if not creds_valid:
+            return {
+                "success": False,
+                "error": error_msg,
+                "incidents": [],
+                "help": "Configure your AWS credentials in Settings.",
+            }
+
+        # Initialize AWS clients with user credentials
+        try:
+            # Pass credentials explicitly to CloudWatch and CloudTrail sources
+            os.environ["AWS_ACCESS_KEY_ID"] = access_key
+            os.environ["AWS_SECRET_ACCESS_KEY"] = secret_key
+            os.environ["AWS_DEFAULT_REGION"] = region
+
+            cloudwatch = CloudWatchSource(region=region)
+            cloudtrail = CloudTrailSource(region=region)
+        except Exception as e:
+            error_message = sanitize_error_message(e)
+            return {
+                "success": False,
+                "error": error_message,
+                "incidents": [],
+                "troubleshooting": {
+                    "check_credentials": "Verify your AWS credentials are correct",
+                    "check_permissions": "Ensure IAM user has CloudWatch and CloudTrail read permissions",
+                    "check_region": f'Verify region "{region}" is valid and accessible',
+                },
+            }
+
+        # Run all detectors
+        try:
+            incidents = run_all_detectors(cloudwatch, cloudtrail)
+        except Exception as e:
+            error_message = sanitize_error_message(e)
+            return {
+                "success": False,
+                "error": f"Failed to scan AWS resources: {error_message}",
+                "incidents": [],
+                "region": region,
+            }
+
+        # Convert incidents to JSON-serializable format
+        incidents_data = []
+        for incident in incidents:
+            try:
+                incidents_data.append(
+                    {
+                        "id": incident.id,
+                        "title": incident.title,
+                        "severity": incident.severity,
+                        "resource": incident.resource,
+                        "description": incident.description,
+                        "detected_at": (
+                            incident.detected_at.isoformat()
+                            if hasattr(incident.detected_at, "isoformat")
+                            else str(incident.detected_at)
+                        ),
+                    }
+                )
+            except Exception as e:
+                # Log but don't fail the entire request for one bad incident
+                print(f"Warning: Failed to serialize incident: {e}")
+                continue
+
+        # Return successful response
+        return {
+            "success": True,
+            "incidents": incidents_data,
+            "incident_count": len(incidents_data),
+            "region": region,
+            "scanned_at": datetime.utcnow().isoformat(),
+            **get_cost_warning(),
+        }
+
+    def do_GET(self):
+        """Handle GET requests to scan for incidents (legacy support)."""
+        try:
+            credentials = self._get_credentials()
+            response = self._perform_scan(credentials)
+            self._send_json_response(200, response)
+        except Exception as e:
+            # Catch-all for unexpected errors
+            print("Unexpected error in scan endpoint:")
+            traceback.print_exc()
+            error_message = sanitize_error_message(e, include_details=False)
+            self._send_json_response(
+                500,
+                {
+                    "success": False,
+                    "error": error_message,
+                    "incidents": [],
+                    "support": "Check Vercel function logs for detailed error information",
+                },
+            )
+
+    def do_POST(self):
+        """Handle POST requests to scan for incidents (user-specific credentials)."""
+        try:
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            request_body = self.rfile.read(content_length).decode('utf-8')
+            request_data = json.loads(request_body) if request_body else {}
+
+            # Get credentials from request or environment
+            credentials = self._get_credentials(request_data)
+            response = self._perform_scan(credentials)
             self._send_json_response(200, response)
 
         except Exception as e:
@@ -294,7 +336,7 @@ class handler(BaseHTTPRequestHandler):
         """Handle CORS preflight requests."""
         self.send_response(200)
         self._set_security_headers()
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Max-Age", "86400")  # 24 hours
         self.end_headers()

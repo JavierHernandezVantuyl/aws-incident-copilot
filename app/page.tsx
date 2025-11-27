@@ -11,8 +11,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Activity,
@@ -35,10 +33,23 @@ import type { Incident, ScanResponse, AWSTestResponse } from './types'
 const SCAN_COOLDOWN_MS = 30000 // 30 seconds minimum between scans
 const CONTINUOUS_SCAN_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
-export default function Home() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
+// Helper functions for localStorage
+const getStoredCredentials = () => {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem('awsCredentials')
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
 
+const saveCredentials = (credentials: { awsAccessKeyId: string; awsSecretAccessKey: string; awsRegion: string }) => {
+  if (typeof window === 'undefined') return
+  localStorage.setItem('awsCredentials', JSON.stringify(credentials))
+}
+
+export default function Home() {
   // State management
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [loading, setLoading] = useState(false)
@@ -50,20 +61,24 @@ export default function Home() {
   const [scanCooldown, setScanCooldown] = useState(false)
   const [costInfo, setCostInfo] = useState<string | null>(null)
   const [permissionWarning, setPermissionWarning] = useState<string | null>(null)
+  const [credentials, setCredentials] = useState<{awsAccessKeyId: string; awsSecretAccessKey: string; awsRegion: string} | null>(null)
 
-  // Redirect to login if not authenticated
+  // Load credentials from localStorage on mount
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
+    const stored = getStoredCredentials()
+    if (stored) {
+      setCredentials(stored)
+      setAwsConfigured(true)
     }
-  }, [status, router])
+  }, [])
 
-  // Check AWS configuration on mount
+  // Check AWS configuration when credentials change
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (credentials?.awsAccessKeyId && credentials?.awsSecretAccessKey) {
       checkAwsConfig()
     }
-  }, [status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentials])
 
   // Continuous monitoring effect
   useEffect(() => {
@@ -80,7 +95,7 @@ export default function Home() {
   }, [monitoring, scanCooldown])
 
   const checkAwsConfig = async () => {
-    if (!session?.user) return
+    if (!credentials) return
 
     try {
       const response = await fetch('/api/test-aws', {
@@ -90,9 +105,9 @@ export default function Home() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          awsAccessKeyId: (session.user as any).awsAccessKeyId,
-          awsSecretAccessKey: (session.user as any).awsSecretAccessKey,
-          awsRegion: (session.user as any).awsRegion
+          awsAccessKeyId: credentials.awsAccessKeyId,
+          awsSecretAccessKey: credentials.awsSecretAccessKey,
+          awsRegion: credentials.awsRegion
         })
       })
 
@@ -137,8 +152,8 @@ export default function Home() {
       return
     }
 
-    if (!session?.user) {
-      setError('Please sign in to scan for incidents')
+    if (!credentials) {
+      setError('Please configure AWS credentials in Settings to scan for incidents')
       return
     }
 
@@ -153,9 +168,9 @@ export default function Home() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          awsAccessKeyId: (session.user as any).awsAccessKeyId,
-          awsSecretAccessKey: (session.user as any).awsSecretAccessKey,
-          awsRegion: (session.user as any).awsRegion
+          awsAccessKeyId: credentials.awsAccessKeyId,
+          awsSecretAccessKey: credentials.awsSecretAccessKey,
+          awsRegion: credentials.awsRegion
         })
       })
 
@@ -197,7 +212,7 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-  }, [scanCooldown, session])
+  }, [scanCooldown, credentials])
 
   const toggleMonitoring = () => {
     if (!monitoring) {
@@ -220,23 +235,6 @@ export default function Home() {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300'
     }
-  }
-
-  // Show loading state while checking authentication
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-12 h-12 text-blue-600 mx-auto mb-4 animate-spin" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Don't render dashboard if not authenticated (will redirect)
-  if (status === 'unauthenticated') {
-    return null
   }
 
   return (
@@ -276,21 +274,13 @@ export default function Home() {
                 </span>
               )}
 
-              {session?.user && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600 flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    {session.user.name}
-                  </span>
-                  <Link
-                    href="/settings"
-                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
-                  >
-                    <Settings className="w-4 h-4" />
-                    Settings
-                  </Link>
-                </div>
-              )}
+              <Link
+                href="/settings"
+                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </Link>
             </div>
           </div>
         </div>
@@ -363,7 +353,7 @@ export default function Home() {
                     <li>Click Save and return to the dashboard</li>
                   </ol>
                   <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                    <strong>Security:</strong> Use IAM user with read-only permissions (CloudWatchReadOnlyAccess, AWSCloudTrailReadOnlyAccess, AmazonEC2ReadOnlyAccess). Your credentials are stored securely in your browser session only.
+                    <strong>Security:</strong> Use IAM user with read-only permissions (CloudWatchReadOnlyAccess, AWSCloudTrailReadOnlyAccess, AmazonEC2ReadOnlyAccess). Your credentials are stored locally in your browser only and never sent to our servers.
                   </div>
                 </div>
               </div>
@@ -610,7 +600,7 @@ export default function Home() {
               AWS Incident Co-Pilot - Powered by AWS CloudWatch & CloudTrail
             </p>
             <p className="text-gray-400 text-xs">
-              <strong>Security:</strong> All AWS operations are read-only. No data is stored on servers.
+              <strong>Security:</strong> All AWS operations are read-only. Credentials stored locally in your browser only.
               <br />
               <strong>Cost:</strong> Uses AWS free tier eligible operations. You are responsible for AWS costs.
             </p>
